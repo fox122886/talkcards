@@ -435,6 +435,10 @@
     $("rulesDlg").showModal();
   });
 
+  // 說明區塊：記住收合狀態（第一次預設展開）
+  $("howto").open = store.get("tc-howto-open", true);
+  $("howto").addEventListener("toggle", function () { store.set("tc-howto-open", $("howto").open); });
+
   renderSetup();
   renderSources();
 })();

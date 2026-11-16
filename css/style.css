@@ -85,6 +85,11 @@ main { max-width: 880px; margin: 0 auto; padding: clamp(16px, 4vw, 40px) clamp(1
 /* ---------- setup ---------- */
 .hero h1 { font-family: var(--serif); font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 8px 0 4px; letter-spacing: .02em; }
 .hero p { color: var(--ink-2); margin: 0 0 24px; }
+.howto { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--talk); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 8px; }
+.howto summary { cursor: pointer; font-weight: 700; }
+.howto-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 22px; margin-top: 10px; }
+.howto h3 { font-size: .98rem; margin: 8px 0 4px; color: var(--talk); }
+.howto ul, .howto ol { margin: 0; padding-left: 1.3em; font-size: .92rem; color: var(--ink-2); display: grid; gap: 4px; }
 .step { margin: 22px 0; }
 .step h2, .step summary { font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
 .num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: .85rem; flex: none; }
