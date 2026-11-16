@@ -58,7 +58,8 @@
       tags: null, levels: null }
   ];
 
-  var ALL = DATA.pick.concat(DATA.talk).map(function (c) {
+  var DECK_NAME = { talk: "慢熟", pick: "選邊站", fight: "全民吵架" };
+  var ALL = DATA.pick.concat(DATA.talk, DATA.fight || []).map(function (c) {
     c.lv = parseInt(c.level.replace(/[^0-9]/g, ""), 10) || 1;
     return c;
   });
@@ -132,6 +133,9 @@
 
   function filterPool() {
     return ALL.filter(function (c) {
+      // 全民吵架都是全場合、單一等級，不受情境／等級／主題篩選
+      if (S.deck === "fight") return c.deck === "fight";
+      if (c.deck === "fight") return false;
       return (S.deck === "mix" || c.deck === S.deck) &&
         S.tags.indexOf(c.scene) > -1 &&
         S.levels.indexOf(c.lv) > -1 &&
@@ -144,8 +148,11 @@
     var nTalk = p.filter(function (c) { return c.deck === "talk"; }).length;
     var nPick = p.length - nTalk;
     var parts = [];
-    if (S.deck !== "pick") parts.push("慢熟 " + nTalk);
-    if (S.deck !== "talk") parts.push("選邊站 " + nPick);
+    if (S.deck === "fight") parts.push("全民吵架 " + p.length + "，不受情境篩選");
+    else {
+      if (S.deck !== "pick") parts.push("慢熟 " + nTalk);
+      if (S.deck !== "talk") parts.push("選邊站 " + nPick);
+    }
     var willPlay = S.limit ? Math.min(S.limit, p.length) : p.length;
     $("poolInfo").innerHTML = "符合條件 <b>" + p.length + "</b> 張（" + parts.join("、") + "），本輪抽 <b>" + willPlay + "</b> 張";
     $("startBtn").disabled = p.length === 0;
@@ -255,6 +262,7 @@
     stopCountdown();
     if (!c) {
       card.hidden = true; $("doneBox").hidden = false;
+      renderSummary();
       setControls(true); updateProgress(); return;
     }
     // 由淺入深：等級往上時先問「要不要進到下一級」
@@ -272,14 +280,17 @@
     card.hidden = false;
     card.classList.remove("flipped");
     card.dataset.deck = c.deck;
-    $("cDeck").textContent = c.deck === "talk" ? "慢熟" : "選邊站";
+    $("cDeck").textContent = DECK_NAME[c.deck];
     $("cLevel").textContent = c.level;
+    $("cLevel").hidden = c.deck === "fight";
+    $("cTitle").hidden = !c.title;
+    $("cTitle").textContent = c.title ? (c.emoji ? c.emoji + " " : "") + c.title : "";
     $("cTopic").textContent = c.topic;
     $("cScene").textContent = c.scene;
     $("cScene").dataset.scene = c.scene;
     $("cQ").textContent = c.q;
     $("cId").textContent = c.id;
-    var isPick = c.deck === "pick";
+    var isPick = c.deck === "pick" || c.deck === "fight";
     $("cAB").hidden = !isPick;
     if (isPick) {
       $("cA").textContent = c.a; $("cB").textContent = c.b;
@@ -297,6 +308,35 @@
     card.classList.remove("enter"); void card.offsetWidth; card.classList.add("enter");
     setControls(false);
     updateProgress();
+  }
+
+  // 一輪結束：列出有投票的題目與多數派比例
+  function renderSummary() {
+    var rows = P.seq.filter(function (c) { var v = P.votes[c.id]; return v && v.a + v.b > 0; });
+    $("summary").hidden = !rows.length;
+    if (!rows.length) return;
+    $("sumTitle").textContent = "📊 我們這群人的選擇：" + rows.length + " 題";
+    var hot = null, hotGap = 101;
+    rows.forEach(function (c) {
+      var v = P.votes[c.id], gap = Math.abs(v.a - v.b) / (v.a + v.b) * 100;
+      if (gap < hotGap) { hotGap = gap; hot = c; }
+    });
+    var g = $("sumGrid"); g.innerHTML = "";
+    rows.forEach(function (c) {
+      var v = P.votes[c.id], tot = v.a + v.b;
+      var win = v.a >= v.b ? "a" : "b", pct = Math.round(v[win] / tot * 100);
+      var d = document.createElement("div"); d.className = "sum-item" + (c === hot && rows.length > 1 ? " hot" : "");
+      d.innerHTML = "<h4></h4><p class='sum-q'></p><p class='sum-res'></p><div class='bar'><i></i></div>";
+      d.querySelector("h4").textContent = (c.emoji || (c.deck === "pick" ? "🤔" : "")) + " " + (c.title ? c.title + "：" : "");
+      d.querySelector(".sum-q").textContent = c.q;
+      d.querySelector(".sum-res").textContent = v.a === v.b ? "平分秋色 50%：" + c.a + "／" + c.b : c[win] + " " + pct + "%";
+      d.querySelector(".bar i").style.width = (v.a === v.b ? 50 : pct) + "%";
+      if (c === hot && rows.length > 1) {
+        var t = document.createElement("span"); t.className = "hot-tag"; t.textContent = "🔥 本輪最大爭議";
+        d.insertBefore(t, d.firstChild);
+      }
+      g.appendChild(d);
+    });
   }
 
   function refItem(r) {
@@ -331,13 +371,16 @@
   // 投票
   function renderVotes() {
     var c = P.seq[P.i], v = P.votes[c.id] || { a: 0, b: 0 };
-    $("cntA").textContent = v.a ? v.a + " 票" : "";
-    $("cntB").textContent = v.b ? v.b + " 票" : "";
-    $("cntA").classList.toggle("has", v.a > v.b);
-    $("cntB").classList.toggle("has", v.b > v.a);
+    var tot = v.a + v.b;
+    ["a", "b"].forEach(function (k) {
+      var K = k.toUpperCase(), pct = tot ? Math.round(v[k] / tot * 100) : 0;
+      $("cnt" + K).textContent = v[k] ? v[k] + " 票・" + pct + "%" : (tot ? "0%" : "");
+      $("cnt" + K).classList.toggle("has", v[k] > v[k === "a" ? "b" : "a"]);
+      document.querySelector('.opt[data-opt="' + k + '"]').style.setProperty("--pct", (tot ? pct : 0) + "%");
+    });
   }
   function vote(opt) {
-    var c = P.seq[P.i]; if (!c || c.deck !== "pick" || $("card").hidden) return;
+    var c = P.seq[P.i]; if (!c || c.deck === "talk" || $("card").hidden) return;
     var v = P.votes[c.id] || (P.votes[c.id] = { a: 0, b: 0 });
     v[opt]++; renderVotes();
     var btn = document.querySelector('.opt[data-opt="' + opt + '"]');
@@ -431,7 +474,7 @@
   document.querySelectorAll("[data-rule]").forEach(function (b) { b.addEventListener("click", function () { showRule(b.dataset.rule); }); });
   $("rulesBtn").addEventListener("click", function () {
     var c = P.seq[P.i];
-    showRule($("view-play").classList.contains("active") && c ? c.deck : (S.deck === "pick" ? "pick" : "talk"));
+    showRule($("view-play").classList.contains("active") && c ? c.deck : (S.deck === "mix" ? "talk" : S.deck));
     $("rulesDlg").showModal();
   });
 

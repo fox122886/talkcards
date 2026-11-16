@@ -9,6 +9,7 @@
   --accent-ink: #fff;
   --talk: #3f6e64;       /* 慢熟 */
   --gold: #b9822b;
+  --fight: #7a4fd6;
   --shadow: 0 18px 40px -18px rgba(70, 45, 25, .35);
   --radius: 18px;
   --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
@@ -26,6 +27,7 @@
   --accent-ink: #1a1214;
   --talk: #7fc3b3;
   --gold: #e3b45c;
+  --fight: #b399ff;
   --shadow: 0 18px 40px -18px rgba(0, 0, 0, .7);
   color-scheme: dark;
 }
@@ -152,6 +154,9 @@ legend { font-weight: 700; font-size: .92rem; margin-bottom: 6px; color: var(--i
 .face.back { transform: rotateY(180deg); border-top: 8px solid var(--gold); }
 .card[data-deck="pick"] { --deck-color: var(--accent); }
 .card[data-deck="talk"] { --deck-color: var(--talk); }
+.card[data-deck="fight"] { --deck-color: var(--fight); }
+.fight-opt input:checked + .deck-body { border-color: var(--fight); }
+.ftitle { margin: 0 0 -8px; font-weight: 800; font-size: 1.05rem; color: var(--fight); letter-spacing: .03em; }
 .card.enter .face.front { animation: deal .4s ease; }
 @keyframes deal { from { opacity: 0; transform: translateY(14px) rotate(-1deg); } to { opacity: 1; transform: none; } }
 
@@ -168,7 +173,10 @@ legend { font-weight: 700; font-size: .92rem; margin-bottom: 6px; color: var(--i
 .ab { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; position: relative; }
 .opt {
   position: relative; text-align: left; display: flex; gap: 10px; align-items: flex-start;
-  background: var(--bg); border: 2px solid var(--line); border-radius: 16px; padding: 14px; font-size: 1.02rem; min-height: 72px;
+  border: 2px solid var(--line); border-radius: 16px; padding: 14px; font-size: 1.02rem; min-height: 72px;
+  --pct: 0%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--deck-color, var(--accent)) 22%, transparent) var(--pct), var(--bg) var(--pct));
+  transition: background .4s;
 }
 .opt b { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: .9rem; }
 .opt:hover { border-color: var(--accent); }
@@ -202,6 +210,19 @@ legend { font-weight: 700; font-size: .92rem; margin-bottom: 6px; color: var(--i
 
 .controls { display: flex; justify-content: center; gap: 10px; margin-top: 22px; }
 .hint { text-align: center; color: var(--ink-2); font-size: .8rem; margin-top: 10px; }
+
+/* ---------- summary ---------- */
+.done { min-height: 0; }
+.summary { width: 100%; text-align: left; margin-top: 18px; }
+.summary h3 { font-size: 1.25rem; margin: 0 0 12px; }
+.sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.sum-item { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; }
+.sum-item.hot { border-color: var(--accent); }
+.sum-item h4 { margin: 0; font-size: .95rem; color: var(--ink-2); }
+.sum-item .sum-q { margin: 0; font-weight: 700; color: var(--ink); }
+.sum-item .sum-res { margin: 4px 0 0; font-size: .9rem; color: var(--ink-2); }
+.sum-item .bar i { background: var(--fight); }
+.hot-tag { position: absolute; top: -10px; right: 12px; background: var(--accent); color: var(--accent-ink); font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 99px; }
 
 /* ---------- sources ---------- */
 #view-sources h1 { font-family: var(--serif); margin: 16px 0 8px; }

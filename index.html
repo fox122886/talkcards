@@ -71,6 +71,15 @@
             <li>卡片右下角有「🧠 翻到卡背」的話，等大家吵完再翻開看心理學解說。</li>
           </ol>
         </section>
+        <section>
+          <h3>🔥 全民吵架專區</h3>
+          <ol>
+            <li>玩法跟選邊站一樣：唸題、倒數、同時比 1 或 2，再記票。</li>
+            <li>記完票，選項上會出現比例條；越接近一半一半越值得吵。</li>
+            <li>少數派先發言，多數派可以反擊。</li>
+            <li>一輪結束會出現「我們這群人的選擇」總結，可以截圖分享。</li>
+          </ol>
+        </section>
       </div>
     </details>
 
@@ -101,6 +110,13 @@
           <span class="deck-body">
             <strong>選邊站｜二選一卡</strong>
             <small>輕鬆 → 價值觀 → 兩難</small>
+          </span>
+        </label>
+        <label class="deck-opt fight-opt">
+          <input type="radio" name="deck" value="fight">
+          <span class="deck-body">
+            <strong>🔥 全民吵架專區</strong>
+            <small>生活小事大對決，投完看比例</small>
           </span>
         </label>
       </div>
@@ -170,6 +186,7 @@
               <span class="tag soft" id="cTopic"></span>
               <span class="tag corner" id="cScene"></span>
             </div>
+            <p class="ftitle" id="cTitle" hidden></p>
             <p class="q" id="cQ"></p>
             <div class="ab" id="cAB" hidden>
               <button type="button" class="opt" data-opt="a"><b>1</b><span id="cA"></span><i class="cnt" id="cntA">0</i></button>
@@ -208,6 +225,10 @@
       <div class="done" id="doneBox" hidden>
         <h2>這一輪聊完了 🎉</h2>
         <p>今天聊完，你最想把哪一個答案帶回家再想一想？</p>
+        <div class="summary" id="summary" hidden>
+          <h3 id="sumTitle"></h3>
+          <div class="sum-grid" id="sumGrid"></div>
+        </div>
         <div class="gate-actions">
           <button type="button" class="primary" id="againBtn">同樣設定再洗一次</button>
           <button type="button" class="ghost" id="doneSetup">回設定頁</button>
@@ -240,6 +261,7 @@
     <div class="dlg-tabs">
       <button type="button" data-rule="talk" class="on">慢熟</button>
       <button type="button" data-rule="pick">選邊站</button>
+      <button type="button" data-rule="fight">全民吵架</button>
     </div>
     <div class="rules-text" id="rulesText"></div>
     <button class="primary" value="close">知道了</button>
