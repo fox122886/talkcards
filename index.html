@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>慢熟 × 選邊站｜對話卡</title>
+<meta name="description" content="慢熟（深聊卡）與選邊站（二選一卡）網頁版：先選使用情境，再抽出適合的題目。">
+<script>
+  // 先套用主題，避免載入時閃爍
+  (function () {
+    var t = "system";
+    try { t = localStorage.getItem("tc-theme") || "system"; } catch (e) {}
+    var dark = t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme-pref", t);
+  })();
+</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <button class="brand" id="homeBtn" type="button" aria-label="回到設定頁">
+    <span class="brand-mark" aria-hidden="true">◐</span>
+    <span>慢熟 <em>×</em> 選邊站</span>
+  </button>
+  <nav class="top-actions">
+    <button type="button" class="ghost" id="rulesBtn">玩法</button>
+    <button type="button" class="ghost" id="sourcesBtn">參考來源</button>
+    <div class="theme-switch" role="radiogroup" aria-label="深淺色">
+      <button type="button" data-theme-set="light" role="radio" title="淺色">☀</button>
+      <button type="button" data-theme-set="system" role="radio" title="跟隨系統">A</button>
+      <button type="button" data-theme-set="dark" role="radio" title="深色">☾</button>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <!-- ========== 設定頁 ========== -->
+  <section id="view-setup" class="view active" aria-labelledby="setupTitle">
+    <div class="hero">
+      <h1 id="setupTitle">今天，是什麼場合？</h1>
+      <p>選好情境，我們幫你把不適合的卡先抽掉。</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="num">1</span>使用情境</h2>
+      <div class="scene-grid" id="sceneGrid"></div>
+    </div>
+
+    <div class="step">
+      <h2><span class="num">2</span>要玩哪一套？</h2>
+      <div class="deck-grid" id="deckGrid">
+        <label class="deck-opt">
+          <input type="radio" name="deck" value="mix" checked>
+          <span class="deck-body">
+            <strong>混合玩</strong>
+            <small>先用選邊站暖場，聊開了再換深聊卡</small>
+          </span>
+        </label>
+        <label class="deck-opt">
+          <input type="radio" name="deck" value="talk">
+          <span class="deck-body">
+            <strong>慢熟｜深聊卡</strong>
+            <small>暖身 → 認識 → 深聊</small>
+          </span>
+        </label>
+        <label class="deck-opt">
+          <input type="radio" name="deck" value="pick">
+          <span class="deck-body">
+            <strong>選邊站｜二選一卡</strong>
+            <small>輕鬆 → 價值觀 → 兩難</small>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <details class="step advanced" id="advanced">
+      <summary><span class="num">3</span>進階調整 <small>（可略過）</small></summary>
+      <div class="adv-body">
+        <fieldset>
+          <legend>卡角標示</legend>
+          <div class="chips" id="sceneTags"></div>
+        </fieldset>
+        <fieldset>
+          <legend>等級</legend>
+          <div class="chips" id="levelChips"></div>
+        </fieldset>
+        <fieldset>
+          <legend>主題 <button type="button" class="link" id="topicAll">全選</button> <button type="button" class="link" id="topicNone">全不選</button></legend>
+          <div class="chips" id="topicChips"></div>
+        </fieldset>
+        <fieldset>
+          <legend>出題方式</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="order" value="progressive" checked><span>由淺入深</span></label>
+            <label class="chip"><input type="radio" name="order" value="random"><span>完全隨機</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>題數</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="limit" value="10"><span>10 題</span></label>
+            <label class="chip"><input type="radio" name="limit" value="20" checked><span>20 題</span></label>
+            <label class="chip"><input type="radio" name="limit" value="40"><span>40 題</span></label>
+            <label class="chip"><input type="radio" name="limit" value="0"><span>全部</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>選邊站選項</legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="optCountdown" checked><span>倒數三秒再選</span></label>
+            <label class="chip"><input type="checkbox" id="optExperiment"><span>框架效應實驗（P2-21／P2-22 前後連抽）</span></label>
+          </div>
+        </fieldset>
+      </div>
+    </details>
+
+    <div class="start-bar">
+      <p class="pool" id="poolInfo" aria-live="polite"></p>
+      <button type="button" class="primary" id="startBtn">開始抽卡 →</button>
+    </div>
+  </section>
+
+  <!-- ========== 抽卡頁 ========== -->
+  <section id="view-play" class="view" aria-label="抽卡">
+    <div class="play-head">
+      <button type="button" class="ghost" id="backSetup">← 改設定</button>
+      <div class="progress" aria-live="polite"><span id="progText"></span><div class="bar"><i id="progBar"></i></div></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <article class="card" id="card" tabindex="-1">
+        <div class="card-inner">
+          <div class="face front">
+            <div class="card-top">
+              <span class="tag deck-tag" id="cDeck"></span>
+              <span class="tag" id="cLevel"></span>
+              <span class="tag soft" id="cTopic"></span>
+              <span class="tag corner" id="cScene"></span>
+            </div>
+            <p class="q" id="cQ"></p>
+            <div class="ab" id="cAB" hidden>
+              <button type="button" class="opt" data-opt="a"><b>1</b><span id="cA"></span><i class="cnt" id="cntA">0</i></button>
+              <button type="button" class="opt" data-opt="b"><b>2</b><span id="cB"></span><i class="cnt" id="cntB">0</i></button>
+              <div class="ab-tools">
+                <button type="button" class="ghost small" id="countdownBtn">倒數 3 秒</button>
+                <button type="button" class="ghost small" id="resetVotes">清除票數</button>
+              </div>
+              <div class="countdown" id="countdown" aria-live="assertive"></div>
+            </div>
+            <div class="card-foot">
+              <span class="cid" id="cId"></span>
+              <button type="button" class="flip-btn" id="flipBtn" hidden>🧠 翻到卡背</button>
+            </div>
+          </div>
+          <div class="face back" aria-hidden="true">
+            <div class="card-top"><span class="tag deck-tag">卡背</span><span class="cid" id="bId"></span></div>
+            <h3 id="bBias"></h3>
+            <p id="bNote"></p>
+            <ul class="refs" id="bRefs"></ul>
+            <button type="button" class="flip-btn" id="flipBack">↩ 翻回正面</button>
+          </div>
+        </div>
+      </article>
+
+      <div class="level-gate" id="levelGate" hidden>
+        <p class="gate-kicker">聊開了嗎？</p>
+        <h2 id="gateTitle"></h2>
+        <p id="gateDesc"></p>
+        <div class="gate-actions">
+          <button type="button" class="primary" id="gateGo">進到下一級</button>
+          <button type="button" class="ghost" id="gateStay">先停在這裡</button>
+        </div>
+      </div>
+
+      <div class="done" id="doneBox" hidden>
+        <h2>這一輪聊完了 🎉</h2>
+        <p>今天聊完，你最想把哪一個答案帶回家再想一想？</p>
+        <div class="gate-actions">
+          <button type="button" class="primary" id="againBtn">同樣設定再洗一次</button>
+          <button type="button" class="ghost" id="doneSetup">回設定頁</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="ghost" id="prevBtn" aria-label="上一張">← 上一張</button>
+      <button type="button" class="ghost" id="skipBtn" title="任何一題都可以跳過，不用解釋">跳過</button>
+      <button type="button" class="primary" id="nextBtn">下一張 →</button>
+    </div>
+    <p class="hint">鍵盤：← → 換卡、空白鍵翻卡背、1／2 投票</p>
+  </section>
+
+  <!-- ========== 參考來源 ========== -->
+  <section id="view-sources" class="view" aria-labelledby="srcTitle">
+    <button type="button" class="ghost" id="srcBack">← 返回</button>
+    <h1 id="srcTitle">參考來源</h1>
+    <p class="lead">題庫內容來自上傳的《對話卡題庫》Excel（慢熟 150 張、選邊站 150 張）。「選邊站」中 14 張隱藏偏誤卡所提到的心理學現象，對應的原始研究如下：</p>
+    <div id="srcBias"></div>
+    <h2>題庫設計可對照的研究（延伸閱讀）</h2>
+    <p class="lead small">以下文獻並非題目來源，而是「由淺入深」分級設計背後常被引用的概念，供延伸閱讀。</p>
+    <ul class="refs big" id="srcDesign"></ul>
+  </section>
+</main>
+
+<dialog id="rulesDlg">
+  <form method="dialog">
+    <div class="dlg-tabs">
+      <button type="button" data-rule="talk" class="on">慢熟</button>
+      <button type="button" data-rule="pick">選邊站</button>
+    </div>
+    <div class="rules-text" id="rulesText"></div>
+    <button class="primary" value="close">知道了</button>
+  </form>
+</dialog>
+
+<script src="js/cards.js"></script>
+<script src="js/sources.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
