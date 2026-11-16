@@ -50,6 +50,7 @@
           <ul>
             <li>用一台手機或平板放桌子中間，或用電腦投到電視或投影幕，大家看同一個畫面。</li>
             <li>在下方選好情境（例如「朋友聚會」），再按「開始抽卡」。</li>
+            <li>這台裝置玩過的題目會優先避開，換一群人玩時，可以按頁面底部的「重置」。</li>
           </ul>
         </section>
         <section>
@@ -162,6 +163,12 @@
         </fieldset>
       </div>
     </details>
+
+    <div class="seen-bar" id="seenBar" aria-live="polite">
+      <span class="seen-label">這台裝置已玩過</span>
+      <span id="seenStats"></span>
+      <button type="button" class="link" id="seenReset" title="換一群人玩時，清除這台裝置的紀錄">重置</button>
+    </div>
 
     <div class="start-bar">
       <p class="pool" id="poolInfo" aria-live="polite"></p>

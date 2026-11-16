@@ -154,7 +154,9 @@
       if (S.deck !== "talk") parts.push("選邊站 " + nPick);
     }
     var willPlay = S.limit ? Math.min(S.limit, p.length) : p.length;
-    $("poolInfo").innerHTML = "符合條件 <b>" + p.length + "</b> 張（" + parts.join("、") + "），本輪抽 <b>" + willPlay + "</b> 張";
+    var fresh = p.filter(function (c) { return !isSeen(c); }).length;
+    $("poolInfo").innerHTML = "符合條件 <b>" + p.length + "</b> 張（" + parts.join("、") + "），其中 <b>" + fresh +
+      "</b> 張還沒玩過；本輪抽 <b>" + willPlay + "</b> 張";
     $("startBtn").disabled = p.length === 0;
     if (!p.length) $("poolInfo").textContent = "沒有符合條件的卡片，請放寬進階調整的條件。";
     store.set("tc-settings", S);
@@ -172,6 +174,47 @@
   $("topicAll").addEventListener("click", function () { document.querySelectorAll('input[name="topic"]').forEach(function (i) { i.checked = true; }); $("view-setup").dispatchEvent(new Event("change")); });
   $("topicNone").addEventListener("click", function () { document.querySelectorAll('input[name="topic"]').forEach(function (i) { i.checked = false; }); $("view-setup").dispatchEvent(new Event("change")); });
 
+  // ---------- 已抽過的不再抽（記在這台裝置的瀏覽器） ----------
+  // 結構：{ seen: { talk: [id...], pick: [...], fight: [...] }, round: { talk: 1, ... } }
+  // 一套題目全部玩過一遍後，自動清空並進入下一輪。
+  var DECKS = ["talk", "pick", "fight"];
+  var DECK_SIZE = {};
+  DECKS.forEach(function (d) { DECK_SIZE[d] = (DATA[d] || []).length; });
+  var SEEN = store.get("tc-seen", null) || {};
+  SEEN.seen = SEEN.seen || {}; SEEN.round = SEEN.round || {};
+  DECKS.forEach(function (d) { SEEN.seen[d] = SEEN.seen[d] || []; SEEN.round[d] = SEEN.round[d] || 1; });
+  var seenSet = {};
+  function rebuildSeenSet() { seenSet = {}; DECKS.forEach(function (d) { SEEN.seen[d].forEach(function (id) { seenSet[id] = true; }); }); }
+  rebuildSeenSet();
+  function isSeen(c) { return !!seenSet[c.id]; }
+  function markSeen(c) {
+    if (!c || seenSet[c.id]) return;
+    SEEN.seen[c.deck].push(c.id); seenSet[c.id] = true;
+    if (SEEN.seen[c.deck].length >= DECK_SIZE[c.deck]) {   // 整套玩完 → 下一輪
+      SEEN.seen[c.deck] = []; SEEN.round[c.deck]++; rebuildSeenSet();
+    }
+    store.set("tc-seen", SEEN);
+  }
+  function renderSeen() {
+    var parts = DECKS.map(function (d) {
+      var t = DECK_NAME[d] + " " + SEEN.seen[d].length + "／" + DECK_SIZE[d];
+      return SEEN.round[d] > 1 ? t + "（第 " + SEEN.round[d] + " 輪）" : t;
+    });
+    $("seenStats").textContent = parts.join("・");
+  }
+  var resetArmed = null;
+  $("seenReset").addEventListener("click", function () {
+    var b = $("seenReset");
+    if (!resetArmed) {   // 按兩次才清除，避免誤觸
+      b.textContent = "確定清除？再按一次";
+      resetArmed = setTimeout(function () { resetArmed = null; b.textContent = "重置"; }, 3000);
+      return;
+    }
+    clearTimeout(resetArmed); resetArmed = null; b.textContent = "重置";
+    DECKS.forEach(function (d) { SEEN.seen[d] = []; SEEN.round[d] = 1; });
+    rebuildSeenSet(); store.set("tc-seen", SEEN); renderSeen(); updatePool();
+  });
+
   // ---------- 洗牌 ----------
   function shuffle(a) {
     a = a.slice();
@@ -179,12 +222,19 @@
     return a;
   }
 
+  // 沒玩過的排前面（各自洗牌），玩過的排後面。
+  // 刻意不再整體洗牌：一輪橫跨「整套玩完」時，新卡先出，翻到下一輪後重複的卡才會被記進新一輪。
+  function freshFirst(a) {
+    return shuffle(a.filter(function (c) { return !isSeen(c); }))
+      .concat(shuffle(a.filter(function (c) { return isSeen(c); })));
+  }
+
   function buildDeck() {
     var pool = filterPool();
     var limit = S.limit || pool.length;
     var seq;
     if (S.order === "random") {
-      seq = shuffle(pool).slice(0, limit);
+      seq = freshFirst(pool).slice(0, limit);
     } else {
       var levels = [1, 2, 3].filter(function (n) { return pool.some(function (c) { return c.lv === n; }); });
       var byLv = {}; levels.forEach(function (n) { byLv[n] = pool.filter(function (c) { return c.lv === n; }); });
@@ -200,14 +250,14 @@
         var q = quota[n];
         if (S.deck === "mix") {
           // 混合：同一等級中先用選邊站暖場，再換慢熟
-          var pk = shuffle(byLv[n].filter(function (c) { return c.deck === "pick"; }));
-          var tk = shuffle(byLv[n].filter(function (c) { return c.deck === "talk"; }));
+          var pk = freshFirst(byLv[n].filter(function (c) { return c.deck === "pick"; }));
+          var tk = freshFirst(byLv[n].filter(function (c) { return c.deck === "talk"; }));
           var np = Math.min(pk.length, Math.ceil(q / 2));
           var nt = Math.min(tk.length, q - np);
           np = Math.min(pk.length, q - nt);
           seq = seq.concat(pk.slice(0, np), tk.slice(0, nt));
         } else {
-          seq = seq.concat(shuffle(byLv[n]).slice(0, q));
+          seq = seq.concat(freshFirst(byLv[n]).slice(0, q));
         }
       });
     }
@@ -244,6 +294,7 @@
   var P = { seq: [], i: 0, votes: {}, round1: {}, gateShownFor: {} };
 
   function showView(id) {
+    if (id === "view-setup") { renderSeen(); updatePool(); }
     document.querySelectorAll(".view").forEach(function (v) { v.classList.toggle("active", v.id === id); });
     window.scrollTo(0, 0);
   }
@@ -447,7 +498,11 @@
   $("flipBack").addEventListener("click", function () { flip(false); });
 
   $("startBtn").addEventListener("click", start);
-  $("nextBtn").addEventListener("click", function () { go(1); });
+  function next() {   // 「下一張」才算玩過；「跳過」不算，下次還會出現
+    if (!$("card").hidden) markSeen(P.seq[P.i]);
+    go(1);
+  }
+  $("nextBtn").addEventListener("click", next);
   $("skipBtn").addEventListener("click", function () { go(1); });
   $("prevBtn").addEventListener("click", function () {
     if (!$("levelGate").hidden || !$("doneBox").hidden) { P.gateShownFor[P.i] = false; }
@@ -463,7 +518,7 @@
   document.addEventListener("keydown", function (e) {
     if (!$("view-play").classList.contains("active") || $("rulesDlg").open) return;
     if (e.target.matches("input, textarea")) return;
-    if (e.key === "ArrowRight") { if (!$("levelGate").hidden) $("gateGo").click(); else go(1); }
+    if (e.key === "ArrowRight") { if (!$("levelGate").hidden) $("gateGo").click(); else if (!$("nextBtn").hidden) next(); }
     else if (e.key === "ArrowLeft") $("prevBtn").click();
     else if (e.key === " ") { e.preventDefault(); flip(); }
     else if (e.key === "1") vote("a");
@@ -514,5 +569,6 @@
   $("howto").addEventListener("toggle", function () { store.set("tc-howto-open", $("howto").open); });
 
   renderSetup();
+  renderSeen();
   renderSources();
 })();

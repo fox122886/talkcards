@@ -127,6 +127,8 @@ legend { font-weight: 700; font-size: .92rem; margin-bottom: 6px; color: var(--i
 .chip input:checked + span { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .chip input:focus-visible + span { outline: 3px solid var(--gold); }
 
+.seen-bar { margin-top: 18px; font-size: .85rem; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.seen-label { font-weight: 700; }
 .start-bar {
   position: sticky; bottom: 12px; margin-top: 28px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
