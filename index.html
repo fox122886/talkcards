@@ -76,8 +76,8 @@
           <ol>
             <li>玩法跟選邊站一樣：唸題、倒數、同時比 1 或 2，再記票。</li>
             <li>記完票，選項上會出現比例條；越接近一半一半越值得吵。</li>
-            <li>少數派先發言，多數派可以反擊。</li>
-            <li>一輪結束會出現「我們這群人的選擇」總結，可以截圖分享。</li>
+            <li>翻盤挑戰：少數派推一位代表，按「🔄 翻盤挑戰」說服 30 秒，大家再投一次，看會不會有人倒戈。</li>
+            <li>一輪結束會出現「我們這群人的選擇」總結，標出最大爭議和翻盤題，可以截圖分享。</li>
           </ol>
         </section>
       </div>
@@ -189,10 +189,12 @@
             <p class="ftitle" id="cTitle" hidden></p>
             <p class="q" id="cQ"></p>
             <div class="ab" id="cAB" hidden>
-              <button type="button" class="opt" data-opt="a"><b>1</b><span id="cA"></span><i class="cnt" id="cntA">0</i></button>
-              <button type="button" class="opt" data-opt="b"><b>2</b><span id="cB"></span><i class="cnt" id="cntB">0</i></button>
+              <button type="button" class="opt" data-opt="a"><b>1</b><span class="opt-txt"><span id="cA"></span><small class="faction" id="fA"></small></span><i class="cnt" id="cntA">0</i></button>
+              <button type="button" class="opt" data-opt="b"><b>2</b><span class="opt-txt"><span id="cB"></span><small class="faction" id="fB"></small></span><i class="cnt" id="cntB">0</i></button>
+              <p class="flip-note" id="flipNote" hidden></p>
               <div class="ab-tools">
                 <button type="button" class="ghost small" id="countdownBtn">倒數 3 秒</button>
+                <button type="button" class="ghost small" id="rematchBtn" title="少數派說服 30 秒後，大家再投一次">🔄 翻盤挑戰</button>
                 <button type="button" class="ghost small" id="resetVotes">清除票數</button>
               </div>
               <div class="countdown" id="countdown" aria-live="assertive"></div>

@@ -241,7 +241,7 @@
   }
 
   // ---------- 抽卡 ----------
-  var P = { seq: [], i: 0, votes: {}, gateShownFor: {} };
+  var P = { seq: [], i: 0, votes: {}, round1: {}, gateShownFor: {} };
 
   function showView(id) {
     document.querySelectorAll(".view").forEach(function (v) { v.classList.toggle("active", v.id === id); });
@@ -250,7 +250,7 @@
 
   function start() {
     readSetup(); store.set("tc-settings", S);
-    P.seq = buildDeck(); P.i = 0; P.votes = {}; P.gateShownFor = {};
+    P.seq = buildDeck(); P.i = 0; P.votes = {}; P.round1 = {}; P.gateShownFor = {};
     showView("view-play");
     render();
   }
@@ -294,6 +294,7 @@
     $("cAB").hidden = !isPick;
     if (isPick) {
       $("cA").textContent = c.a; $("cB").textContent = c.b;
+      $("fA").textContent = c.fa || ""; $("fB").textContent = c.fb || "";
       $("countdownBtn").hidden = !S.countdown;
       renderVotes();
     }
@@ -329,7 +330,11 @@
       d.innerHTML = "<h4></h4><p class='sum-q'></p><p class='sum-res'></p><div class='bar'><i></i></div>";
       d.querySelector("h4").textContent = (c.emoji || (c.deck === "pick" ? "🤔" : "")) + " " + (c.title ? c.title + "：" : "");
       d.querySelector(".sum-q").textContent = c.q;
-      d.querySelector(".sum-res").textContent = v.a === v.b ? "平分秋色 50%：" + c.a + "／" + c.b : c[win] + " " + pct + "%";
+      var res = v.a === v.b ? "平分秋色 50%：" + label(c, "a") + "／" + label(c, "b") : label(c, win) + " " + pct + "%";
+      var r1 = P.round1[c.id];
+      if (r1 && isFlipped(r1, v)) res += "（🔄 翻盤成功）";
+      else if (r1) res += "（翻盤挑戰失敗）";
+      d.querySelector(".sum-res").textContent = res;
       d.querySelector(".bar i").style.width = (v.a === v.b ? 50 : pct) + "%";
       if (c === hot && rows.length > 1) {
         var t = document.createElement("span"); t.className = "hot-tag"; t.textContent = "🔥 本輪最大爭議";
@@ -369,6 +374,9 @@
   }
 
   // 投票
+  function label(c, k) { return c["f" + k] || c[k]; }
+  function lead(v) { return v.a === v.b ? "" : (v.a > v.b ? "a" : "b"); }
+  function isFlipped(r1, v) { return v.a + v.b > 0 && lead(r1) && lead(v) && lead(r1) !== lead(v); }
   function renderVotes() {
     var c = P.seq[P.i], v = P.votes[c.id] || { a: 0, b: 0 };
     var tot = v.a + v.b;
@@ -378,6 +386,17 @@
       $("cnt" + K).classList.toggle("has", v[k] > v[k === "a" ? "b" : "a"]);
       document.querySelector('.opt[data-opt="' + k + '"]').style.setProperty("--pct", (tot ? pct : 0) + "%");
     });
+    var r1 = P.round1[c.id], note = $("flipNote");
+    note.hidden = !r1;
+    if (r1) {
+      var t1 = r1.a + r1.b;
+      var txt = "第一輪：" + label(c, "a") + " " + Math.round(r1.a / t1 * 100) + "% vs " + label(c, "b") + " " + Math.round(r1.b / t1 * 100) + "%";
+      if (isFlipped(r1, v)) txt = "🔄 翻盤成功！" + txt;
+      else if (tot) txt += "，目前還沒翻盤";
+      else txt += "，請重新投票";
+      note.textContent = txt;
+      note.classList.toggle("win", isFlipped(r1, v));
+    }
   }
   function vote(opt) {
     var c = P.seq[P.i]; if (!c || c.deck === "talk" || $("card").hidden) return;
@@ -387,20 +406,32 @@
     btn.classList.remove("bump"); void btn.offsetWidth; btn.classList.add("bump");
   }
   document.querySelectorAll(".opt").forEach(function (b) { b.addEventListener("click", function () { vote(b.dataset.opt); }); });
-  $("resetVotes").addEventListener("click", function () { var c = P.seq[P.i]; if (c) { delete P.votes[c.id]; renderVotes(); } });
+  $("resetVotes").addEventListener("click", function () { var c = P.seq[P.i]; if (c) { delete P.votes[c.id]; delete P.round1[c.id]; renderVotes(); } });
 
-  // 倒數
+  // 倒數（3 秒比手勢；翻盤挑戰 30 秒說服）
   var cdTimer = null;
-  function stopCountdown() { clearInterval(cdTimer); cdTimer = null; $("countdown").classList.remove("on"); }
-  $("countdownBtn").addEventListener("click", function () {
-    var n = 3, el = $("countdown");
-    stopCountdown(); el.textContent = n; el.classList.add("on");
+  function stopCountdown() { clearInterval(cdTimer); cdTimer = null; $("countdown").classList.remove("on", "long"); }
+  function countdown(n, ms, endText, long) {
+    var el = $("countdown");
+    stopCountdown(); el.textContent = n; el.classList.add("on"); el.classList.toggle("long", !!long);
     cdTimer = setInterval(function () {
       n--;
       if (n > 0) el.textContent = n;
-      else if (n === 0) el.textContent = "比！";
+      else if (n === 0) el.textContent = endText;
       else stopCountdown();
-    }, 800);
+    }, ms);
+  }
+  $("countdownBtn").addEventListener("click", function () { countdown(3, 800, "比！"); });
+  $("countdown").addEventListener("click", stopCountdown);
+  $("rematchBtn").addEventListener("click", function () {
+    var c = P.seq[P.i], v = c && P.votes[c.id];
+    if (!v || v.a + v.b === 0) {
+      $("flipNote").hidden = false; $("flipNote").classList.remove("win");
+      $("flipNote").textContent = "先投完第一輪，少數派才能發起翻盤挑戰。"; return;
+    }
+    P.round1[c.id] = { a: v.a, b: v.b };
+    delete P.votes[c.id]; renderVotes();
+    countdown(30, 1000, "重新投票！", true);
   });
 
   // 翻卡

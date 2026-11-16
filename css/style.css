@@ -184,7 +184,14 @@ legend { font-weight: 700; font-size: .92rem; margin-bottom: 6px; color: var(--i
 @keyframes bump { 50% { transform: scale(1.03); } }
 .cnt { position: absolute; right: 10px; bottom: 6px; font-style: normal; font-size: .8rem; color: var(--ink-2); }
 .cnt.has { color: var(--accent); font-weight: 700; }
-.ab-tools { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+.opt-txt { display: grid; gap: 2px; }
+.faction { font-size: .78rem; color: var(--deck-color, var(--accent)); font-weight: 700; }
+.faction:empty { display: none; }
+.flip-note { grid-column: 1 / -1; margin: 0; font-size: .88rem; color: var(--ink-2); text-align: center; }
+.flip-note.win { color: var(--accent); font-weight: 800; font-size: 1rem; }
+.countdown.long { font-size: 3rem; cursor: pointer; }
+.countdown.long::after { content: "少數派說服中・點一下略過"; position: absolute; bottom: 14px; font-size: .8rem; font-weight: 400; color: var(--ink-2); }
+.ab-tools { grid-column: 1 / -1; flex-wrap: wrap; display: flex; gap: 8px; justify-content: flex-end; }
 .countdown { position: absolute; inset: -6px; display: none; place-items: center; font-size: 4rem; font-weight: 800; color: var(--accent); background: color-mix(in srgb, var(--surface) 88%, transparent); border-radius: 18px; }
 .countdown.on { display: grid; }
 

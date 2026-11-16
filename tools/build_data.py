@@ -62,6 +62,8 @@ def main(xlsx_path):
                 "title": clean(r[1]), "emoji": clean(r[2]), "topic": clean(r[3]),
                 "scene": clean(r[4]) or "全場合", "q": clean(r[5]),
                 "a": clean(r[6]), "b": clean(r[7]),
+                "fa": clean(r[8]) if len(r) > 8 else "",
+                "fb": clean(r[9]) if len(r) > 9 else "",
             })
 
     prefix = {"W": "talk", "P": "pick", "F": "fight"}
